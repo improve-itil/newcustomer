@@ -20,6 +20,8 @@
         #statusMessage { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
+        /* אלמנט נסתר לחלוטין שמטפל בשליחה ועוקף את ה-CORS */
+        #hidden_iframe { display: none; }
     </style>
 </head>
 <body>
@@ -27,7 +29,7 @@
         <a target="_blank" href="https://www.improve-it.co.il/"><img src="https://www.improve-it.co.il/wp-content/uploads/2021/03/logo-improve-it.png" alt="לוגו החברה" class="logo"></a>
         <h1>טופס פתיחת לקוח חדש</h1>
         
-        <form id="clientForm">
+        <form id="clientForm" action="https://script.google.com/macros/s/AKfycbyDSZagk2gUjbqkCGBpdOmiENEiaq5O5iVLKE_poS7K4-SuVxmOclHpORKVu5bPMKyP/exec" method="POST" target="hidden_iframe">
             <label><span class="required-asterisk">*</span> שם החברה</label>
             <input type="text" name="company_name" required>
 
@@ -67,6 +69,8 @@
         <p class="note">הטופס נבנה על ידי Improve-IT</p>
     </div>
 
+    <iframe name="hidden_iframe" id="hidden_iframe"></iframe>
+
     <script>
         function addNewEmailField(input) {
             if (input.value.trim() !== "" && !input.nextElementSibling) {
@@ -79,68 +83,32 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('clientForm');
-            const submitBtn = document.getElementById('submitBtn');
-            const statusMessage = document.getElementById('statusMessage');
+        const form = document.getElementById('clientForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMessage = document.getElementById('statusMessage');
 
-            // ⚠️ הדבק כאן את כתובת ה-URL של ה-Apps Script Web App שלך
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbxg23AkUtYXVD7bXklGB0cAZgrdwhVcbBYa09FEr8mhNtLviqYyzJIpBkd7ZvfAEKMu/exec';
-
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    submitBtn.disabled = true;
-                    statusMessage.style.display = "block";
-                    statusMessage.className = "";
-                    statusMessage.innerHTML = "שולח נתונים ישירות לגיליון, אנא המתן...";
-
-                    // בניית אובייקט הנתונים מהטופס
-                    const formData = new FormData(this);
-                    const data = {};
-                    
-                    formData.forEach((value, key) => {
-                        if (key.endsWith('[]')) {
-                            const cleanKey = key.slice(0, -2);
-                            if (!data[cleanKey]) data[cleanKey] = [];
-                            data[cleanKey].push(value);
-                        } else {
-                            data[key] = value;
-                        }
-                    });
-
-                    // ביצוע חיבור ה-JavaScript (Fetch POST) ישירות ל-Apps Script
-                    fetch(webAppUrl, {
-                        method: 'POST',
-                        mode: 'cors', // הפעלה במצב מאובטח המאפשר חציית שרתים
-                        headers: {
-                            'Content-Type': 'text/plain' // גוגל מקבלת בצורה הטובה ביותר JSON שנשלח כטקסט פשוט
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        submitBtn.disabled = false;
-                        if (result.success) {
-                            statusMessage.className = "success";
-                            statusMessage.innerHTML = result.message;
-                            form.reset();
-                            document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
-                        } else {
-                            statusMessage.className = "error";
-                            statusMessage.innerHTML = "שגיאה מהשרת: " + result.message;
-                        }
-                    })
-                    .catch(error => {
-                        submitBtn.disabled = false;
-                        statusMessage.className = "error";
-                        statusMessage.innerHTML = "שגיאת תקשורת: ודא שהסקריפט פורסם נכון כ-Web App ומוגדר לגישה ל-Anyone.";
-                        console.error('Error:', error);
-                    });
-                });
-            }
+        // שינוי ויזואלי של כפתור השליחה ברגע הלחיצה
+        form.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            statusMessage.style.display = "block";
+            statusMessage.className = "";
+            statusMessage.innerHTML = "שולח נתונים ומעדכן גיליון, אנא המתן...";
         });
+
+        // האזנה להודעה החוזרת מגוגל מתוך ה-iframe הנסתר
+        window.addEventListener('message', function(event) {
+            if (event.data === 'SUCCESS') {
+                submitBtn.disabled = false;
+                statusMessage.className = "success";
+                statusMessage.innerHTML = "הטופס נשלח בהצלחה והנתונים התעדכנו בגיליון!";
+                form.reset();
+                document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
+            } else if (typeof event.data === 'string' && event.data.startsWith('ERROR')) {
+                submitBtn.disabled = false;
+                statusMessage.className = "error";
+                statusMessage.innerHTML = "שגיאה בשמירת הנתונים: " + event.data;
+            }
+        }, false);
     </script>
 </body>
 </html>
