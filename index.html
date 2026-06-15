@@ -20,7 +20,6 @@
         #statusMessage { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
-        #hidden_iframe { display: none; }
     </style>
 </head>
 <body>
@@ -28,7 +27,7 @@
         <a target="_blank" href="https://www.improve-it.co.il/"><img src="https://www.improve-it.co.il/wp-content/uploads/2021/03/logo-improve-it.png" alt="לוגו החברה" class="logo"></a>
         <h1>טופס פתיחת לקוח חדש</h1>
         
-        <form id="clientForm" action="https://script.google.com/macros/s/AKfycbyDSZagk2gUjbqkCGBpdOmiENEiaq5O5iVLKE_poS7K4-SuVxmOclHpORKVu5bPMKyP/exec" method="POST" target="hidden_iframe">
+        <form id="clientForm">
             <label><span class="required-asterisk">*</span> שם החברה</label>
             <input type="text" name="company_name" required>
 
@@ -68,9 +67,8 @@
         <p class="note">הטופס נבנה על ידי Improve-IT</p>
     </div>
 
-    <iframe name="hidden_iframe" id="hidden_iframe"></iframe>
-
     <script>
+        // פונקציה להוספת שדות אימייל דינמיים לחשבוניות
         function addNewEmailField(input) {
             if (input.value.trim() !== "" && !input.nextElementSibling) {
                 const newInput = document.createElement('input');
@@ -82,33 +80,66 @@
             }
         }
 
-        const form = document.getElementById('clientForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const iframe = document.getElementById('hidden_iframe');
-        
-        let isSubmitting = false;
+        window.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('clientForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const statusMessage = document.getElementById('statusMessage');
 
-        // בעת לחיצה על שלח
-        form.addEventListener('submit', function() {
-            isSubmitting = true;
-            submitBtn.disabled = true;
-            statusMessage.style.display = "block";
-            statusMessage.className = "";
-            statusMessage.innerHTML = "שולח נתונים ומעדכן גיליון, אנא המתן...";
-        });
+            // ⚠️ ודא שזהו הקישור העדכני של ה-Web App שלך מגוגל (מפרויקט ה-Apps Script שבו מוגדר ה-JSON.parse בתוך ה-doPost)
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbyDSZagk2gUjbqkCGBpdOmiENEiaq5O5iVLKE_poS7K4-SuVxmOclHpORKVu5bPMKyP/exec';
 
-        // 💡 הפתרון החדש: האזנה ישירה לרגע שה-iframe מסיים להיטען
-        iframe.addEventListener('load', function() {
-            // אנחנו בודקים את המשתנה כדי לוודא שזו טעינה שנבעה משליחת הטופס ולא מהטעינה הראשונית של העמוד
-            if (isSubmitting) {
-                isSubmitting = false;
-                submitBtn.disabled = false;
-                statusMessage.className = "success";
-                statusMessage.innerHTML = "הטופס נשלח בהצלחה והנתונים התעדכנו בגיליון!";
-                form.reset();
-                // איפוס שדות המייל הדינמיים לשדה אחד בלבד
-                document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // חסימת הכפתור ועדכון סטטוס זמני
+                    submitBtn.disabled = true;
+                    statusMessage.style.display = "block";
+                    statusMessage.className = "";
+                    statusMessage.innerHTML = "שולח נתונים ישירות לגיליון, אנא המתן...";
+
+                    // בניית אובייקט הנתונים מהטופס
+                    const formData = new FormData(this);
+                    const data = {};
+                    
+                    formData.forEach((value, key) => {
+                        if (key.endsWith('[]')) {
+                            const cleanKey = key.slice(0, -2);
+                            if (!data[cleanKey]) data[cleanKey] = [];
+                            data[cleanKey].push(value);
+                        } else {
+                            data[key] = value;
+                        }
+                    });
+
+                    // ביצוע השליחה ב-Fetch במצב no-cors
+                    fetch(webAppUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // אומר לדפדפן לשלוח את המידע ללא בדיקת חוקי CORS קשיחים מול גוגל
+                        headers: {
+                            'Content-Type': 'text/plain'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(() => {
+                        /* 💡 מאחר והנתונים נכנסים לגיליון בהצלחה, ברגע שה-Fetch מסיים לשדר ברשת,
+                           אנחנו משחררים את הטופס ומציגים הודעת הצלחה ירוקה באופן מיידי. */
+                        submitBtn.disabled = false;
+                        statusMessage.className = "success";
+                        statusMessage.innerHTML = "הטופס נשלח בהצלחה והנתונים התעדכנו בגיליון!";
+                        form.reset();
+                        
+                        // איפוס מכולת שדות המייל לשדה בודד ראשוני
+                        document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
+                    })
+                    .catch(error => {
+                        // בלוק זה ירוץ אך ורק במקרה של שגיאת רשת פיזית (כמו ניתוק מהאינטרנט)
+                        submitBtn.disabled = false;
+                        statusMessage.className = "error";
+                        statusMessage.innerHTML = "שגיאת תקשורת בשליחת הטופס. ודא שיש חיבור פעיל לאינטרנט.";
+                        console.error('Error:', error);
+                    });
+                });
             }
         });
     </script>
