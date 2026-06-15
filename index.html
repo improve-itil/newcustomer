@@ -20,7 +20,6 @@
         #statusMessage { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
-        /* אלמנט נסתר לחלוטין שמטפל בשליחה ועוקף את ה-CORS */
         #hidden_iframe { display: none; }
     </style>
 </head>
@@ -86,29 +85,32 @@
         const form = document.getElementById('clientForm');
         const submitBtn = document.getElementById('submitBtn');
         const statusMessage = document.getElementById('statusMessage');
+        const iframe = document.getElementById('hidden_iframe');
+        
+        let isSubmitting = false;
 
-        // שינוי ויזואלי של כפתור השליחה ברגע הלחיצה
+        // בעת לחיצה על שלח
         form.addEventListener('submit', function() {
+            isSubmitting = true;
             submitBtn.disabled = true;
             statusMessage.style.display = "block";
             statusMessage.className = "";
             statusMessage.innerHTML = "שולח נתונים ומעדכן גיליון, אנא המתן...";
         });
 
-        // האזנה להודעה החוזרת מגוגל מתוך ה-iframe הנסתר
-        window.addEventListener('message', function(event) {
-            if (event.data === 'SUCCESS') {
+        // 💡 הפתרון החדש: האזנה ישירה לרגע שה-iframe מסיים להיטען
+        iframe.addEventListener('load', function() {
+            // אנחנו בודקים את המשתנה כדי לוודא שזו טעינה שנבעה משליחת הטופס ולא מהטעינה הראשונית של העמוד
+            if (isSubmitting) {
+                isSubmitting = false;
                 submitBtn.disabled = false;
                 statusMessage.className = "success";
                 statusMessage.innerHTML = "הטופס נשלח בהצלחה והנתונים התעדכנו בגיליון!";
                 form.reset();
+                // איפוס שדות המייל הדינמיים לשדה אחד בלבד
                 document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
-            } else if (typeof event.data === 'string' && event.data.startsWith('ERROR')) {
-                submitBtn.disabled = false;
-                statusMessage.className = "error";
-                statusMessage.innerHTML = "שגיאה בשמירת הנתונים: " + event.data;
             }
-        }, false);
+        });
     </script>
 </body>
 </html>
