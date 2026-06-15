@@ -4,93 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>טופס פתיחת לקוח חדש</title>
-    <link rel="icon" type="image/x-icon" href="new.png">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-        }
-        .logo {
-            display: block;
-            margin: 0 auto 20px auto;
-            max-width: 200px;
-        }
-        h1 {
-            text-align: center;
-            color: #2C3E50;
-            margin-bottom: 30px;
-        }
-        label {
-            font-weight: 600;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .required-asterisk {
-            color: red;
-            margin-right: 3px;
-            display: inline-block;
-        }
-        input[type="text"], input[type="email"], input[type="tel"] {
-            width: calc(100% - 24px);
-            padding: 14px 12px;
-            margin: 8px 0 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 15px;
-            transition: border-color 0.3s ease;
-            box-sizing: border-box;
-        }
-        input:focus {
-            border-color: #2C3E50;
-            outline: none;
-        }
-        button {
-            background-color: #2C3E50;
-            color: white;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            width: 100%;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #34495E;
-        }
-        .note {
-            font-size: 14px;
-            color: #666;
-            margin-top: 20px;
-            text-align: center;
-        }
-        a {
-            color: #2C3E50;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); box-sizing: border-box; }
+        .logo { display: block; margin: 0 auto 20px auto; max-width: 200px; }
+        h1 { text-align: center; color: #2C3E50; margin-bottom: 30px; }
+        label { font-weight: 600; display: block; margin-bottom: 5px; }
+        .required-asterisk { color: red; margin-right: 3px; display: inline-block; }
+        input[type="text"], input[type="email"], input[type="tel"] { width: calc(100% - 24px); padding: 14px 12px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; transition: border-color 0.3s ease; box-sizing: border-box; }
+        input:focus { border-color: #2C3E50; outline: none; }
+        button { background-color: #2C3E50; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s ease; }
+        button:hover { background-color: #34495E; }
+        button:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+        .note { font-size: 14px; color: #666; margin-top: 20px; text-align: center; }
+        #statusMessage { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
     <div class="container">
-        <a target="_blank" href="https://www.improve-it.co.il/"><img src="logo improve-it.png" alt="לוגו החברה" class="logo"></a>
+        <a target="_blank" href="https://www.improve-it.co.il/"><img src="https://www.improve-it.co.il/wp-content/uploads/2021/03/logo-improve-it.png" alt="לוגו החברה" class="logo"></a>
         <h1>טופס פתיחת לקוח חדש</h1>
+        
         <form id="clientForm">
             <label><span class="required-asterisk">*</span> שם החברה</label>
             <input type="text" name="company_name" required>
@@ -124,8 +60,10 @@
                 <input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">
             </div>
 
-            <button type="submit">שלח טופס</button>
+            <button type="submit" id="submitBtn">שלח טופס</button>
         </form>
+        
+        <div id="statusMessage"></div>
         <p class="note">הטופס נבנה על ידי Improve-IT</p>
     </div>
 
@@ -143,11 +81,25 @@
 
         window.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('clientForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // ⚠️ הדבק כאן את כתובת ה-URL של ה-Apps Script Web App שלך
+            const webAppUrl = 'https://script.google.com/macros/s/AKfycbyiyTSf-Q9X9WZebih6VjA4f4jz0JusYp3MYUoq9mF_RR0nv52dBme8baV8skD3XdvG/exec';
+
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
+                    
+                    submitBtn.disabled = true;
+                    statusMessage.style.display = "block";
+                    statusMessage.className = "";
+                    statusMessage.innerHTML = "שולח נתונים ישירות לגיליון, אנא המתן...";
+
+                    // בניית אובייקט הנתונים מהטופס
                     const formData = new FormData(this);
                     const data = {};
+                    
                     formData.forEach((value, key) => {
                         if (key.endsWith('[]')) {
                             const cleanKey = key.slice(0, -2);
@@ -157,21 +109,34 @@
                             data[key] = value;
                         }
                     });
-                    fetch('https://hook.us2.make.com/415cu88647qai6o724ypbvni5hljri9x', {
+
+                    // ביצוע חיבור ה-JavaScript (Fetch POST) ישירות ל-Apps Script
+                    fetch(webAppUrl, {
                         method: 'POST',
+                        mode: 'cors', // הפעלה במצב מאובטח המאפשר חציית שרתים
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'text/plain' // גוגל מקבלת בצורה הטובה ביותר JSON שנשלח כטקסט פשוט
                         },
                         body: JSON.stringify(data)
-                    }).then(response => {
-                        if (response.ok) {
-                            alert('הטופס נשלח בהצלחה!');
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        submitBtn.disabled = false;
+                        if (result.success) {
+                            statusMessage.className = "success";
+                            statusMessage.innerHTML = result.message;
                             form.reset();
+                            document.getElementById('invoiceEmailsContainer').innerHTML = '<input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">';
                         } else {
-                            alert('שגיאה בשליחת הטופס.');
+                            statusMessage.className = "error";
+                            statusMessage.innerHTML = "שגיאה מהשרת: " + result.message;
                         }
-                    }).catch(error => {
-                        alert('שגיאה בשליחת הטופס.');
+                    })
+                    .catch(error => {
+                        submitBtn.disabled = false;
+                        statusMessage.className = "error";
+                        statusMessage.innerHTML = "שגיאת תקשורת: ודא שהסקריפט פורסם נכון כ-Web App ומוגדר לגישה ל-Anyone.";
+                        console.error('Error:', error);
                     });
                 });
             }
