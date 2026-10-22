@@ -14,15 +14,29 @@
         label { font-weight: 600; display: block; margin-bottom: 5px; }
         .required-asterisk { color: red; margin-right: 3px; display: inline-block; }
         input[type="text"], input[type="email"], input[type="tel"] { width: calc(100% - 24px); padding: 14px 12px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; transition: border-color 0.3s ease; box-sizing: border-box; }
-        input:focus { border-color: #2C3E50; outline: none; }
+        input:focus { border-color: #2C3E50; outline: none; box-shadow: 0 0 0 3px #2c3e5014; }
+        input[aria-invalid="true"] { border-color: #dc4848; background: #fffafa; margin-bottom: 6px; }
+        input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px #dc484814; }
+        .field-error { display: flex; align-items: flex-start; gap: 7px; color: #a82f36; font-size: 13px; line-height: 1.6; margin: 0 0 18px; }
+        .field-error::before { content: '!'; flex: 0 0 17px; height: 17px; margin-top: 2px; border-radius: 50%; background: #fce4e5; font-weight: 700; text-align: center; line-height: 17px; }
         button { background-color: #2C3E50; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.3s ease; }
         button:hover { background-color: #34495E; }
         button:disabled { background-color: #7f8c8d; cursor: not-allowed; }
         .note { font-size: 14px; color: #666; margin-top: 20px; text-align: center; }
-        #statusMessage { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; display: none; }
-        .success { background-color: #d4edda; color: #155724; }
-        .warning { background-color: #fff3cd; color: #664d03; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        #statusMessage { margin-top: 20px; padding: 18px; border: 1px solid #dce5ed; border-radius: 12px; background: #f4f8fb; color: #344b60; display: none; align-items: flex-start; gap: 12px; text-align: right; overflow-wrap: anywhere; }
+        #statusMessage.success { background: #f0faf5; border-color: #c5e8d5; color: #246044; }
+        #statusMessage.warning { background: #fffbef; border-color: #f1dfab; color: #785d18; }
+        #statusMessage.error { background: #fff5f5; border-color: #f1cccc; color: #96363d; }
+        .status-icon { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 50%; background: #e3edf5; font-size: 18px; font-weight: 700; }
+        .success .status-icon { background: #d9f0e3; }
+        .warning .status-icon { background: #faedc7; }
+        .error .status-icon { background: #f9dfe1; }
+        .status-title { display: block; margin-bottom: 4px; font-size: 15px; font-weight: 700; }
+        .status-description { margin: 0; font-size: 14px; line-height: 1.65; }
+        .status-icon.is-loading { box-sizing: border-box; flex-basis: 24px; height: 24px; margin: 3px; background: transparent; border: 2px solid #d7e3ec; border-top-color: #344b60; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .status-icon.is-loading { animation: none; } }
+        @media (max-width: 480px) { body { padding: 12px; } .container { padding: 24px 18px; } #statusMessage { padding: 14px; } }
     </style>
 </head>
 <body>

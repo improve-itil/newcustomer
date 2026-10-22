@@ -2,7 +2,7 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxOUTr7WfT2qtlounRmG1E6It7eQaRPeVCXS8KN4MYDKck5IvlRhzwcPkdTbX-yg_BXUw/exec';
 
 function addNewEmailField(input) {
-    if (input.value.trim() && !input.nextElementSibling) {
+    if (input.value.trim() && input === input.parentElement.querySelector('input:last-of-type')) {
         const next = document.createElement('input');
         next.type = 'email';
         next.name = 'invoice_emails[]';
@@ -16,6 +16,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('clientForm');
     const button = document.getElementById('submitBtn');
     const status = document.getElementById('statusMessage');
+    // Keep native constraints, but present accessible inline messages instead of browser bubbles.
+    form.noValidate = true;
+    let triedSubmission = false;
+    let fieldSequence = 0;
     let pending = null;
     const storageKey = 'improve-it-client-form-request';
     // Only the request ID and SHA-256 digest are stored, never contact details.
@@ -28,15 +32,75 @@ window.addEventListener('DOMContentLoaded', () => {
         label.htmlFor = input.id;
     });
 
+    function validateInput(input) {
+        if (!input.matches('input')) return true;
+        const empty = !input.value.trim();
+        let message = '';
+        if (input.required && empty) message = 'יש למלא את השדה הזה כדי להמשיך.';
+        else if (!empty && input.validity.typeMismatch) message = 'יש להזין כתובת מייל תקינה, למשל name@example.com.';
+        else if (!input.validity.valid) message = 'יש לבדוק את הערך שהוזן בשדה.';
+        if (!input.id) input.id = 'client-extra-field-' + (++fieldSequence);
+        const errorId = input.id + '-error';
+        let error = document.getElementById(errorId);
+        if (!message) {
+            input.removeAttribute('aria-invalid');
+            if (error) error.remove();
+            const describedBy = (input.getAttribute('aria-describedby') || '').split(' ').filter(id => id && id !== errorId);
+            if (describedBy.length) input.setAttribute('aria-describedby', describedBy.join(' '));
+            else input.removeAttribute('aria-describedby');
+            return true;
+        }
+        input.setAttribute('aria-invalid', 'true');
+        if (!error) {
+            error = document.createElement('span');
+            error.id = errorId;
+            error.className = 'field-error';
+            input.insertAdjacentElement('afterend', error);
+        }
+        error.textContent = message;
+        const describedBy = new Set((input.getAttribute('aria-describedby') || '').split(' ').filter(Boolean));
+        describedBy.add(errorId);
+        input.setAttribute('aria-describedby', [...describedBy].join(' '));
+        return false;
+    }
+
+    form.addEventListener('input', event => {
+        if (event.target.matches('input[aria-invalid="true"]')) validateInput(event.target);
+    });
+    form.addEventListener('focusout', event => {
+        if (event.target.matches('input') && (triedSubmission || event.target.value.trim())) validateInput(event.target);
+    });
+
     function show(message, type = '') {
-        status.style.display = 'block';
+        status.style.display = 'flex';
         status.className = type;
-        status.textContent = message;
+        const titles = {success: 'הפרטים התקבלו, תודה!', error: 'לא הצלחנו להשלים את השליחה', warning: 'הפרטים נשמרו ונדרשת בדיקה'};
+        const icon = document.createElement('span');
+        icon.className = 'status-icon' + (type ? '' : ' is-loading');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = {success: '✓', error: '!', warning: '!'}[type] || '';
+        const content = document.createElement('div');
+        const title = document.createElement('strong');
+        title.className = 'status-title';
+        title.textContent = titles[type] || 'רק רגע, שומרים את הפרטים';
+        const description = document.createElement('p');
+        description.className = 'status-description';
+        description.textContent = message;
+        content.append(title, description);
+        status.replaceChildren(icon, content);
     }
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
-        if (button.disabled || !form.reportValidity()) return;
+        if (button.disabled) return;
+        triedSubmission = true;
+        const invalidInputs = [...form.querySelectorAll('input')].filter(input => !validateInput(input));
+        if (invalidInputs.length) {
+            invalidInputs[0].focus();
+            // Field messages provide the actionable detail next to each input.
+            status.style.display = 'none';
+            return;
+        }
         button.disabled = true;
         form.setAttribute('aria-busy', 'true');
         show('שומר את הנתונים בגיליון, אנא המתן...');
@@ -73,6 +137,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             show(result.warning || 'הטופס נשלח בהצלחה והנתונים נשמרו בגיליון!', result.warning ? 'warning' : 'success');
             form.reset();
+            triedSubmission = false;
             const emails = document.getElementById('invoiceEmailsContainer');
             [...emails.children].slice(1).forEach(input => input.remove());
             pending = null;
