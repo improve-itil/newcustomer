@@ -15,6 +15,10 @@
         .required-asterisk { color: red; margin-right: 3px; display: inline-block; }
         input[type="text"], input[type="email"], input[type="tel"] { width: calc(100% - 24px); padding: 14px 12px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; transition: border-color 0.3s ease; box-sizing: border-box; }
         input:focus { border-color: #2C3E50; outline: none; box-shadow: 0 0 0 3px #2c3e5014; }
+        .invoice-email-row { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 8px; width: calc(100% - 24px); }
+        .invoice-email-number { grid-column: 1; grid-row: 1; align-self: start; margin-top: 22px; text-align: center; font-weight: 600; color: #2C3E50; }
+        .invoice-email-row input { grid-column: 2; width: 100%; min-width: 0; }
+        .invoice-email-row .field-error { grid-column: 2; }
         input[aria-invalid="true"] { border-color: #dc4848; background: #fffafa; margin-bottom: 6px; }
         input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px #dc484814; }
         .field-error { display: flex; align-items: flex-start; gap: 7px; color: #a82f36; font-size: 13px; line-height: 1.6; margin: 0 0 18px; }
@@ -74,7 +78,10 @@
 
             <label><span class="required-asterisk">*</span> כתובות מייל לשליחת חשבוניות</label>
             <div id="invoiceEmailsContainer">
-                <input type="email" name="invoice_emails[]" required oninput="addNewEmailField(this)">
+                <div class="invoice-email-row">
+                    <span class="invoice-email-number" aria-hidden="true">1.</span>
+                    <input type="email" name="invoice_emails[]" required aria-label="כתובת מייל 1 לשליחת חשבוניות" oninput="addNewEmailField(this)">
+                </div>
             </div>
 
             <button type="submit" id="submitBtn">שלח טופס</button>
@@ -84,6 +91,6 @@
         <p class="note">הטופס נבנה על ידי Improve-IT</p>
     </div>
 
-    <script src="form.js"></script>
+    <script src="form.js?v=20261105-email-numbering"></script>
 </body>
 </html>

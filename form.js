@@ -2,13 +2,23 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxOUTr7WfT2qtlounRmG1E6It7eQaRPeVCXS8KN4MYDKck5IvlRhzwcPkdTbX-yg_BXUw/exec';
 
 function addNewEmailField(input) {
-    if (input.value.trim() && input === input.parentElement.querySelector('input:last-of-type')) {
+    const row = input.closest('.invoice-email-row');
+    const container = row.parentElement;
+    if (input.value.trim() && row === container.lastElementChild) {
+        const number = container.children.length + 1;
+        const nextRow = document.createElement('div');
+        nextRow.className = 'invoice-email-row';
+        const badge = document.createElement('span');
+        badge.className = 'invoice-email-number';
+        badge.setAttribute('aria-hidden', 'true');
+        badge.textContent = number + '.';
         const next = document.createElement('input');
         next.type = 'email';
         next.name = 'invoice_emails[]';
-        next.setAttribute('aria-label', 'כתובת מייל נוספת לשליחת חשבוניות');
+        next.setAttribute('aria-label', 'כתובת מייל ' + number + ' לשליחת חשבוניות');
         next.addEventListener('input', () => addNewEmailField(next));
-        input.parentElement.appendChild(next);
+        nextRow.append(badge, next);
+        container.appendChild(nextRow);
     }
 }
 
